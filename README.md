@@ -47,7 +47,7 @@ Each host file owns a tiny `dispatch` loop:
 
 ```ts
 let model = init(cols, rows);
-terminal.write(SGR_MOUSE_ENABLE + view(model));
+terminal.write(view(model, { enableMouse: true }));  // first frame enables mouse tracking
 
 function dispatch(msg: Msg): void {
   const next = update(msg, model);
@@ -63,7 +63,7 @@ function dispatch(msg: Msg): void {
 graph TD
     A["Layer 1 — app/ansi.ts\nPure ANSI escape-sequence helpers\nand layout constants.\nNo xterm / DOM / Bun dependency."]
     B["Layer 2 — app/model.ts · init.ts · update.ts · view.ts\nTEA core: Model / Msg / init / update / view.\nZero xterm / DOM / runtime dependency."]
-    K["Layer 2 — app/keys.ts  (input parser)\nSGR_MOUSE_ENABLE · SGR_MOUSE · parseMsg.\nConverts raw byte sequences → Msg.\nShared by all terminal hosts."]
+    K["Layer 2 — app/keys.ts  (input parser)\nparseMsg.\nConverts raw byte sequences → Msg.\nShared by all terminal hosts."]
     IDX["app/index.ts\nPublic barrel entry point.\nHosts import everything from here."]
     C["Layer 3 — xterm.ts\nxterm.js host (xterm.html).\nOwns the TEA loop;\ntranslates xterm events → Msg."]
     D["Layer 3 — wterm.ts\n@wterm/dom host (wterm.html).\nOwns the TEA loop;\ntranslates wterm events → Msg."]
@@ -87,7 +87,7 @@ graph TD
 | `app/init.ts` | TEA `init(cols, rows): Model` — returns the initial model |
 | `app/update.ts` | TEA `update(msg, model): Model` — pure state transition; all input logic |
 | `app/view.ts` | TEA `view(model): string` — pure ANSI frame renderer |
-| `app/keys.ts` | Shared input parser — `SGR_MOUSE_ENABLE`, `SGR_MOUSE`, `parseMsg`; used by all hosts |
+| `app/keys.ts` | Shared input parser — `parseMsg`; used by all hosts |
 | `app/geom.ts` | Internal geometry helpers shared by `update` and `view` (not in public API) |
 | `app/index.ts` | Public barrel entry point — hosts import everything from here |
 | `xterm.ts` | xterm.js host; owns the TEA loop (served via `xterm.html`) |

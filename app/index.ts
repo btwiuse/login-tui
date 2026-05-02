@@ -16,4 +16,4 @@ export { view, type ViewOptions }  from './view.ts';
 export { parseMsg } from './keys.ts';
 
 // ANSI utilities needed by hosts for terminal lifecycle management
-export { showCursor, cls } from './ansi.ts';
+export { showCursor, cls, SGR_MOUSE_DISABLE } from './ansi.ts';
