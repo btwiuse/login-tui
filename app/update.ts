@@ -58,7 +58,7 @@ function _handleKey(key: string, event: KeyEvent, model: Model): Model {
     return model;
   }
   if (k === 'Enter') return _activateFocus(model);
-  if (key.length === 1 && !event.ctrlKey && !event.altKey && !event.metaKey) {
+  if (key.length === 1 && key >= ' ' && !event.ctrlKey && !event.altKey && !event.metaKey) {
     if (model.focus === 0 && model.username.length < INPUT_W)
       return { ...model, username: model.username + key };
     if (model.focus === 1 && model.password.length < INPUT_W)
