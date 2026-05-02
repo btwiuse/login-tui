@@ -49,10 +49,10 @@ const term = new WTerm(el, {
     if (!app) return;
 
     // SGR mouse press: ESC [ < btn ; col ; row M
-    const m = SGR_MOUSE.exec(data);
-    if (m) {
-      const btn = parseInt(m[1], 10), col = parseInt(m[2], 10), row = parseInt(m[3], 10);
-      if (btn === 0 && m[4] === 'M') {
+    const mouseMatch = SGR_MOUSE.exec(data);
+    if (mouseMatch) {
+      const button = parseInt(mouseMatch[1], 10), col = parseInt(mouseMatch[2], 10), row = parseInt(mouseMatch[3], 10);
+      if (button === 0 && mouseMatch[4] === 'M') {
         const out = app.mousePress(row, col);
         if (out) term.write(out);
       }
