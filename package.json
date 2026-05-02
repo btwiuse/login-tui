@@ -1,10 +1,11 @@
 {
   "scripts": {
-    "dev": "bun ./index.html",
+    "dev:xterm": "bun ./xterm.html",
     "dev:wterm": "bun ./wterm.html",
-    "build:web": "bun build --compile --target=browser --outdir=dist ./index.html",
-    "build:web:wterm": "bun build --compile --target=browser --outdir=dist ./wterm.html",
-    "build:cli": "bun build --compile --target=node --outfile=dist/cli ./cli.ts"
+    "dev:cli": "bun run ./cli.ts",
+    "build:xterm": "bun build --target=browser --outdir=dist ./xterm.html",
+    "build:wterm": "bun build --target=browser --outdir=dist ./wterm.html",
+    "build:cli": "bun build --target=node --outfile=dist/cli ./cli.ts"
   },
   "dependencies": {
     "@wterm/dom": "^0.3.0",
