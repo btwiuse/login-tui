@@ -4,11 +4,19 @@
 //  No logic; no dependencies.
 // ═══════════════════════════════════════════════════════════════════════
 
+/** Focused element in the login form. */
+export const enum Focus {
+  Username = 0,
+  Password = 1,
+  Login    = 2,
+  Cancel   = 3,
+}
+
 /** Full application state. */
 export interface Model {
   username: string;
   password: string;
-  focus:    number;  // 0 = username  1 = password  2 = login  3 = cancel
+  focus:    Focus;
   message:  string;
   done:     boolean;
   cols:     number;

@@ -5,6 +5,7 @@
 // ═══════════════════════════════════════════════════════════════════════
 
 import type { Model } from './model.ts';
+import { Focus } from './model.ts';
 import {
   hideCursor, showCursor, goto, cls, bold, rev, fg,
   BOX_W, INPUT_W, LABEL_USER, LABEL_PASS, INNER,
@@ -66,7 +67,7 @@ function _render(model: Model): string {
 
   // username row
   {
-    const foc   = model.focus === 0;
+    const foc   = model.focus === Focus.Username;
     const field = _renderInput(model.username, foc, false);
     const rest  = INNER - LABEL_USER.length - inputVW(foc);
     o += _boxRow(ROW0 + 4, COL0, LABEL_USER + field + ' '.repeat(Math.max(0, rest)));
@@ -76,7 +77,7 @@ function _render(model: Model): string {
 
   // password row
   {
-    const foc   = model.focus === 1;
+    const foc   = model.focus === Focus.Password;
     const field = _renderInput(model.password, foc, true);
     const rest  = INNER - LABEL_PASS.length - inputVW(foc);
     o += _boxRow(ROW0 + 6, COL0, LABEL_PASS + field + ' '.repeat(Math.max(0, rest)));
@@ -86,9 +87,9 @@ function _render(model: Model): string {
 
   // buttons row
   {
-    const loginBtn  = _renderBtn('Login',  model.focus === 2);
-    const cancelBtn = _renderBtn('Cancel', model.focus === 3);
-    const totalVW   = btnVW('Login', model.focus === 2) + 4 + btnVW('Cancel', model.focus === 3);
+    const loginBtn  = _renderBtn('Login',  model.focus === Focus.Login);
+    const cancelBtn = _renderBtn('Cancel', model.focus === Focus.Cancel);
+    const totalVW   = btnVW('Login', model.focus === Focus.Login) + 4 + btnVW('Cancel', model.focus === Focus.Cancel);
     const padL      = Math.floor((INNER - totalVW) / 2);
     const padR      = INNER - padL - totalVW;
     o += _boxRow(ROW0 + 8, COL0,
@@ -109,12 +110,12 @@ function _render(model: Model): string {
   o += goto(ROW0 + 13, hintCol) + fg(90, hint);
 
   // cursor — only shown inside active text field
-  if (!model.done && model.focus <= 1) {
+  if (!model.done && model.focus <= Focus.Password) {
     o += showCursor;
-    const label = model.focus === 0 ? LABEL_USER : LABEL_PASS;
-    const row   = model.focus === 0 ? ROW0 + 4 : ROW0 + 6;
+    const label = model.focus === Focus.Username ? LABEL_USER : LABEL_PASS;
+    const row   = model.focus === Focus.Username ? ROW0 + 4 : ROW0 + 6;
     const col   = COL0 + 1 + label.length +
-      (model.focus === 0 ? model.username : model.password).length;
+      (model.focus === Focus.Username ? model.username : model.password).length;
     o += goto(row, col);
   }
 
