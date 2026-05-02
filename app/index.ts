@@ -6,7 +6,6 @@
 
 // TEA types
 export type { Model, KeyEvent, Msg } from './model.ts';
-export { Focus } from './model.ts';
 
 // TEA functions
 export { init }                    from './init.ts';
