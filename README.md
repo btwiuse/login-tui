@@ -1,7 +1,5 @@
 # login-tui
 
-**Live demos →** [xterm.js version](./xterm.html) · [wterm version](./wterm.html)
-
 A fully-interactive TUI login form written in TypeScript.  
 Runs in **three modes** from the same core logic:
 
