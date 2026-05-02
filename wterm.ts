@@ -26,6 +26,7 @@ const term = new WTerm(el, {
 
 await term.init();
 
+dispatch({ type: 'Resize', cols: term.cols, rows: term.rows });
 term.write(view(store.getState().model, { enableMouse: true }));
 
 // Re-render whenever the model changes
