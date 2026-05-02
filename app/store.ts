@@ -23,8 +23,9 @@ export function createAppStore(cols: number, rows: number) {
   const store = createStore<AppState>()(() => ({ model: init(cols, rows) }));
 
   function dispatch(msg: Msg): void {
-    const next = update(msg, store.getState().model);
-    if (next !== store.getState().model) store.setState({ model: next });
+    const model = store.getState().model;
+    const next = update(msg, model);
+    if (next !== model) store.setState({ model: next });
   }
 
   return { store, dispatch };
