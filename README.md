@@ -18,18 +18,21 @@ rendering logic is completely decoupled from the runtime environment.
 
 ### The Elm Architecture
 
-```
-┌─────────────────────────────────────────────────────────┐
-│                      TEA loop (host)                    │
-│                                                         │
-│   event ──► dispatch(msg) ──► update(msg, model)        │
-│                                         │               │
-│                                         ▼               │
-│                               model' ──► view(model')   │
-│                                                │        │
-│                                                ▼        │
-│                                           terminal.write│
-└─────────────────────────────────────────────────────────┘
+```mermaid
+flowchart LR
+    init["init(cols, rows)\n─────────────\nreturns the\ninitial Model"]
+    Model(["Model\n─────────────\nplain data record\ndescribing the\nfull app state"])
+    Msg(["Msg\n─────────────\ndiscriminated union\nof all possible\nevents"])
+    update["update(msg, model)\n─────────────\nMsg × Model → Model\npure · same ref\nwhen unchanged"]
+    view["view(model)\n─────────────\nModel → string\npure · returns\nfull ANSI frame"]
+    terminal[/"terminal.write(frame)"/]
+
+    init --> Model
+    Msg  --> update
+    Model --> update
+    update --> |"Model'"| view
+    view --> terminal
+    terminal -.->|next event| Msg
 ```
 
 | TEA concept | Implementation in `app.ts` |
@@ -60,14 +63,19 @@ function dispatch(msg: Msg): void {
 graph TD
     A["Layer 1 — ansi.ts\nPure ANSI escape-sequence helpers\nand layout constants.\nNo xterm / DOM / Bun dependency."]
     B["Layer 2 — app.ts  (TEA core)\nModel / Msg / init / update / view.\nZero xterm / DOM / runtime dependency."]
+    K["Layer 2 — keys.ts  (input parser)\nSGR_MOUSE_ENABLE · SGR_MOUSE · parseMsg.\nConverts raw byte sequences → Msg.\nShared by all terminal hosts."]
     C["Layer 3 — xterm.ts\nxterm.js host (xterm.html).\nOwns the TEA loop;\ntranslates xterm events → Msg."]
     D["Layer 3 — wterm.ts\n@wterm/dom host (wterm.html).\nOwns the TEA loop;\ntranslates wterm events → Msg."]
     E["Layer 3 — cli.ts\nBun raw-mode stdin host.\nOwns the TEA loop;\ntranslates stdin chunks → Msg."]
 
     A -->|imported by| B
+    A -->|imported by| K
     B -->|browser xterm.js| C
     B -->|browser wterm| D
     B -->|CLI| E
+    K -->|shared input parsing| C
+    K -->|shared input parsing| D
+    K -->|shared input parsing| E
 ```
 
 ### Files
@@ -76,6 +84,7 @@ graph TD
 |------|---------|
 | `ansi.ts` | ANSI escape helpers (`goto`, `cls`, `bold`, `rev`, `fg`, …) and box layout constants |
 | `app.ts` | TEA core — `Model`, `Msg`, `init`, `update`, `view`; runtime-agnostic |
+| `keys.ts` | Shared input parser — `SGR_MOUSE_ENABLE`, `SGR_MOUSE`, `parseMsg`; used by all hosts |
 | `xterm.ts` | xterm.js host; owns the TEA loop (served via `xterm.html`) |
 | `wterm.ts` | @wterm/dom host; owns the TEA loop (served via `wterm.html`) |
 | `cli.ts` | Bun raw-mode CLI host; owns the TEA loop |
