@@ -6,7 +6,7 @@
 //  No TUI / rendering logic lives here.
 // ═══════════════════════════════════════════════════════════════════════
 
-import { showCursor, cls, SGR_MOUSE_DISABLE, init, update, view, type Msg, parseMsg } from './app/index.ts';
+import { showCursor, cls, SGR_MOUSE_DISABLE, view, parseMsg, createAppStore } from './app/index.ts';
 
 function write(s: string): void {
   process.stdout.write(s);
@@ -30,20 +30,19 @@ function exitClean(code = 0): never {
 // ── Main ─────────────────────────────────────────────────────────────
 
 const { cols, rows } = termSize();
-let model = init(cols, rows);
+const store = createAppStore(cols, rows);
+const { dispatch } = store.getState();
 
 process.stdin.setRawMode(true);
 process.stdin.resume();
 process.stdin.setEncoding('utf8');
 
-write(view(model, { enableMouse: true }));
+write(view(store.getState().model, { enableMouse: true }));
 
-function dispatch(msg: Msg): void {
-  const next = update(msg, model);
-  if (next === model) return;
-  model = next;
-  write(view(model));
-}
+// Re-render whenever the model changes
+store.subscribe((state, prev) => {
+  if (state.model !== prev.model) write(view(state.model));
+});
 
 process.stdin.on('data', (chunk: string) => {
   // Ctrl+C / Ctrl+D → exit
