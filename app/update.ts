@@ -9,6 +9,14 @@ import { Focus } from './model.ts';
 import { INPUT_W, LABEL_USER, LABEL_PASS, INNER } from './ansi.ts';
 import { layout, inputVW, btnVW } from './geom.ts';
 
+/** Ordered list of focusable elements; drives Tab/Arrow cycling. */
+const FOCUS_CYCLE: Focus[] = [Focus.Username, Focus.Password, Focus.Login, Focus.Cancel];
+
+function _nextFocus(current: Focus, delta: 1 | -1): Focus {
+  const i = FOCUS_CYCLE.indexOf(current);
+  return FOCUS_CYCLE[(i + FOCUS_CYCLE.length + delta) % FOCUS_CYCLE.length];
+}
+
 /** Pure update function.  Returns the same reference when nothing changed. */
 export function update(msg: Msg, model: Model): Model {
   switch (msg.type) {
@@ -47,10 +55,10 @@ function _handleKey(key: string, event: KeyEvent, model: Model): Model {
   const k = event.key;
   if (k === 'Tab') {
     event.preventDefault();
-    return { ...model, focus: event.shiftKey ? (model.focus + 3) % 4 as Focus : (model.focus + 1) % 4 as Focus };
+    return { ...model, focus: event.shiftKey ? _nextFocus(model.focus, -1) : _nextFocus(model.focus, 1) };
   }
-  if (k === 'ArrowDown') return { ...model, focus: (model.focus + 1) % 4 as Focus };
-  if (k === 'ArrowUp')   return { ...model, focus: (model.focus + 3) % 4 as Focus };
+  if (k === 'ArrowDown') return { ...model, focus: _nextFocus(model.focus, 1) };
+  if (k === 'ArrowUp')   return { ...model, focus: _nextFocus(model.focus, -1) };
   if (k === 'Backspace') {
     if (model.focus === Focus.Username && model.username.length > 0)
       return { ...model, username: model.username.slice(0, -1) };
