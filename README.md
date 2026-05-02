@@ -1,4 +1,4 @@
-# login-app
+# login-tui
 
 A fully-interactive TUI login form written in TypeScript.  
 Runs in **two modes** from the same core logic:
@@ -61,7 +61,6 @@ Requires [Bun](https://bun.sh) ≥ 1.0.
 ```bash
 bun install
 bun dev
-# DEV  Bun v… ready — open http://localhost:3000/
 ```
 
 Open <http://localhost:3000/> in any modern browser.  
