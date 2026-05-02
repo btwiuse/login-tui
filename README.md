@@ -42,19 +42,18 @@ flowchart LR
 | **init**    | `app/init.ts` — `init(cols, rows): Model` — returns the initial model |
 | **update**  | `app/update.ts` — `update(msg, model): Model` — pure function; returns the same reference when nothing changes |
 | **view**    | `app/view.ts` — `view(model): string` — pure function that produces the full ANSI frame |
+| **store**   | `app/store.ts` — `createAppStore(cols, rows)` — zustand vanilla store; returns `{ store, dispatch }` so hosts subscribe for rendering without managing model state directly |
 
-Each host file owns a tiny `dispatch` loop:
+Each host creates a zustand store and subscribes for rendering:
 
 ```ts
-let model = init(cols, rows);
-terminal.write(view(model, { enableMouse: true }));  // first frame enables mouse tracking
+const { store, dispatch } = createAppStore(cols, rows);
+terminal.write(view(store.getState().model, { enableMouse: true }));  // first frame enables mouse tracking
 
-function dispatch(msg: Msg): void {
-  const next = update(msg, model);
-  if (next === model) return;   // nothing changed → skip re-render
-  model = next;
-  terminal.write(view(model));
-}
+// Re-render whenever the model changes
+store.subscribe((state, prev) => {
+  if (state.model !== prev.model) terminal.write(view(state.model));
+});
 ```
 
 ### Layers
@@ -64,15 +63,18 @@ graph TD
     A["Layer 1 — app/ansi.ts\nPure ANSI escape-sequence helpers\nand layout constants.\nNo xterm / DOM / Bun dependency."]
     B["Layer 2 — app/model.ts · init.ts · update.ts · view.ts\nTEA core: Model / Msg / init / update / view.\nZero xterm / DOM / runtime dependency."]
     K["Layer 2 — app/keys.ts  (input parser)\nparseMsg.\nConverts raw byte sequences → Msg.\nShared by all terminal hosts."]
+    S["Layer 2 — app/store.ts  (zustand store)\ncreateAppStore · AppState.\nWraps TEA model; exposes store + dispatch.\nUsed by all hosts via index.ts."]
     IDX["app/index.ts\nPublic barrel entry point.\nHosts import everything from here."]
-    C["Layer 3 — xterm.ts\nxterm.js host (xterm.html).\nOwns the TEA loop;\ntranslates xterm events → Msg."]
-    D["Layer 3 — wterm.ts\n@wterm/dom host (wterm.html).\nOwns the TEA loop;\ntranslates wterm events → Msg."]
-    E["Layer 3 — cli.ts\nBun raw-mode stdin host.\nOwns the TEA loop;\ntranslates stdin chunks → Msg."]
+    C["Layer 3 — xterm.ts\nxterm.js host (xterm.html).\nUses the zustand store;\ntranslates xterm events → Msg."]
+    D["Layer 3 — wterm.ts\n@wterm/dom host (wterm.html).\nUses the zustand store;\ntranslates wterm events → Msg."]
+    E["Layer 3 — cli.ts\nBun raw-mode stdin host.\nUses the zustand store;\ntranslates stdin chunks → Msg."]
 
     A -->|imported by| B
     A -->|imported by| K
     B --> IDX
+    B --> S
     K --> IDX
+    S --> IDX
     IDX -->|browser xterm.js| C
     IDX -->|browser wterm| D
     IDX -->|CLI| E
@@ -87,12 +89,13 @@ graph TD
 | `app/init.ts` | TEA `init(cols, rows): Model` — returns the initial model |
 | `app/update.ts` | TEA `update(msg, model): Model` — pure state transition; all input logic |
 | `app/view.ts` | TEA `view(model): string` — pure ANSI frame renderer |
+| `app/store.ts` | Zustand vanilla store — `createAppStore(cols, rows)` returns `{ store, dispatch }`; centralises model state and change-detection for all hosts |
 | `app/keys.ts` | Shared input parser — `parseMsg`; used by all hosts |
 | `app/geom.ts` | Internal geometry helpers shared by `update` and `view` (not in public API) |
 | `app/index.ts` | Public barrel entry point — hosts import everything from here |
-| `xterm.ts` | xterm.js host; owns the TEA loop (served via `xterm.html`) |
-| `wterm.ts` | @wterm/dom host; owns the TEA loop (served via `wterm.html`) |
-| `cli.ts` | Bun raw-mode CLI host; owns the TEA loop |
+| `xterm.ts` | xterm.js host; uses the zustand store (served via `xterm.html`) |
+| `wterm.ts` | @wterm/dom host; uses the zustand store (served via `wterm.html`) |
+| `cli.ts` | Bun raw-mode CLI host; uses the zustand store |
 | `xterm.html` | Entry point for the xterm.js browser mode |
 | `wterm.html` | Entry point for the @wterm/dom browser mode |
 | `package.json` | Dependencies and scripts |

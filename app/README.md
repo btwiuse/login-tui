@@ -17,7 +17,9 @@ import {
   // Input parser
   parseMsg,
   // ANSI utilities for host lifecycle management
-  showCursor, cls, SGR_MOUSE_DISABLE
+  showCursor, cls, SGR_MOUSE_DISABLE,
+  // Zustand store factory
+  createAppStore, type AppState,
 } from './app/index.ts';
 ```
 
@@ -39,6 +41,7 @@ import {
 | `init.ts` | **init** | `init(cols, rows): Model` — returns the initial `Model` for a given terminal size. |
 | `update.ts` | **update** | `update(msg, model): Model` — pure state-transition function. Returns the same reference when nothing changes, enabling cheap re-render guards. Contains all input-handling logic (`_handleKey`, `_handleMousePress`, `_activateFocus`, `_hitTest`). |
 | `view.ts` | **view** | `view(model, opts?): string` — pure render function. Accepts optional `ViewOptions { enableMouse?: boolean }`: when `enableMouse: true` the returned string is prefixed with `SGR_MOUSE_ENABLE`, so hosts never need to import or know that escape sequence directly. All rendering helpers live here. |
+| `store.ts` | **store** | `createAppStore(cols, rows)` — creates a [zustand](https://github.com/pmndrs/zustand) vanilla store that holds the TEA model. Returns `{ store, dispatch }`: `store` is a `StoreApi<AppState>` hosts subscribe to for rendering; `dispatch` is a stable closure outside store state that runs `update` and calls `store.setState` only when the model reference changes. |
 | `keys.ts` | *(shared)* | Raw terminal byte-sequence parser used by all hosts. Exports only `parseMsg(data): Msg \| null`. Imports `SGR_MOUSE_RE` from `ansi.ts`; the SGR protocol constants are **not** re-exported here. |
 | `geom.ts` | *(internal)* | Geometry helpers shared by `update.ts` and `view.ts`: `layout(model)` computes the centred box origin; `inputVW` / `btnVW` compute widget visual widths for both hit-testing and rendering. **Not exported from `index.ts`.** |
 
@@ -61,6 +64,7 @@ graph TD
     update_["update.ts\nupdate()"]
     view_["view.ts\nview()"]
     keys["keys.ts\nparseMsg · SGR_MOUSE_RE↑"]
+    store["store.ts\ncreateAppStore · AppState"]
     idx["index.ts\npublic entry point"]
 
     ansi --> geom
@@ -75,6 +79,9 @@ graph TD
     geom --> view_
     model --> keys
     ansi --> keys
+    model --> store
+    init_ --> store
+    update_ --> store
 
     init_   --> idx
     update_ --> idx
@@ -82,6 +89,7 @@ graph TD
     keys    --> idx
     model   --> idx
     ansi    --> idx
+    store   --> idx
 ```
 
 ---
@@ -98,23 +106,28 @@ freely reorganised without touching any host.
 ### Pure functions only
 
 `init`, `update`, and `view` have no side-effects and no I/O dependencies.
-`update` returns the **same object reference** when nothing changed, so hosts can
-use a strict-equality guard (`if (next === model) return`) to skip unnecessary
-re-renders.
+`update` returns the **same object reference** when nothing changed.
+`app/store.ts` exploits this: the `dispatch` closure applies the strict-equality guard
+(`if (next !== model) store.setState(…)`) once, centrally, so no host needs to replicate it.
 
-### The dispatch loop (owned by each host)
+### The dispatch loop (created by `createAppStore`, used by each host)
+
+`app/store.ts` encapsulates the dispatch loop in a [zustand](https://github.com/pmndrs/zustand)
+vanilla store so hosts don't manage model state directly:
 
 ```ts
-let model = init(cols, rows);
-terminal.write(view(model, { enableMouse: true }));  // first frame enables mouse tracking
+const { store, dispatch } = createAppStore(cols, rows);
+terminal.write(view(store.getState().model, { enableMouse: true }));  // first frame enables mouse tracking
 
-function dispatch(msg: Msg): void {
-  const next = update(msg, model);
-  if (next === model) return;   // nothing changed → skip re-render
-  model = next;
-  terminal.write(view(model));
-}
+// Re-render whenever the model changes
+store.subscribe((state, prev) => {
+  if (state.model !== prev.model) terminal.write(view(state.model));
+});
 ```
+
+`dispatch` is a stable closure outside the store state. It runs the pure `update` function
+and calls `store.setState` only when the model reference changes — the same guard as
+before, but now centralised so no host needs to replicate it.
 
 ### Why `xterm.ts` mixes `onData` and `onKey`
 
