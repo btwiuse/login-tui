@@ -15,7 +15,7 @@ export const cls = _ESC + '2J' + _ESC + 'H';
 
 // Cursor positioning — matches ansi-escapes cursorTo(col-1, row-1)
 export const goto = (row: number, col: number): string =>
-  _ESC + row + ';' + col + 'H';
+  `${_ESC}${row};${col}H`;
 
 // Text styling via ansi-styles
 export const bold = (s: string): string => styles.bold.open + s + styles.bold.close;
