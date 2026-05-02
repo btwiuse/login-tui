@@ -24,7 +24,7 @@ flowchart LR
     Model(["Model\n─────────────\nplain data record\ndescribing the\nfull app state"])
     Msg(["Msg\n─────────────\ndiscriminated union\nof all possible\nevents"])
     update["update(msg, model)\n─────────────\nMsg × Model → Model\npure · same ref\nwhen unchanged"]
-    view["view(model)\n─────────────\nModel → string\npure · returns\nfull ANSI frame"]
+    view["view(model, opts?)\n─────────────\nModel × ViewOptions? → string\npure · returns\nfull ANSI frame"]
     terminal[/"terminal.write(frame)"/]
 
     init --> Model
@@ -41,7 +41,7 @@ flowchart LR
 | **Msg**     | `app/model.ts` — `Msg` discriminated union — `Resize \| MousePress \| Key` |
 | **init**    | `app/init.ts` — `init(cols, rows): Model` — returns the initial model |
 | **update**  | `app/update.ts` — `update(msg, model): Model` — pure function; returns the same reference when nothing changes |
-| **view**    | `app/view.ts` — `view(model): string` — pure function that produces the full ANSI frame |
+| **view**    | `app/view.ts` — `view(model, opts?): string` — pure function that produces the full ANSI frame; pass `{ enableMouse: true }` on the first call to prefix the SGR mouse-enable sequence |
 | **store**   | `app/store.ts` — `createAppStore(cols, rows)` — zustand vanilla store; returns `{ store, dispatch }` so hosts subscribe for rendering without managing model state directly |
 
 Each host creates a zustand store and subscribes for rendering:
