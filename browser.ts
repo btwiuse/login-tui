@@ -1,13 +1,16 @@
 // ═══════════════════════════════════════════════════════════════════════
-//  Layer 3 — Terminal host
-//  Sets up xterm.js, wires I/O events to LoginApp, writes output back.
+//  Layer 3 — Terminal host (xterm.js)
+//  Drives the TEA loop: wires I/O events → update → view → terminal.
 //  No TUI / rendering logic lives here.
 // ═══════════════════════════════════════════════════════════════════════
 
 import "@xterm/xterm/css/xterm.css"
 import { Terminal } from '@xterm/xterm';
 import { FitAddon } from '@xterm/addon-fit';
-import { LoginApp } from './app.ts';
+import { init, update, view, type Msg } from './app.ts';
+
+const SGR_MOUSE_ENABLE = '\x1b[?1000h\x1b[?1006h';
+const SGR_MOUSE        = /^\x1b\[<(\d+);(\d+);(\d+)([Mm])$/;
 
 const term = new Terminal({
   cursorBlink: true,
@@ -19,26 +22,29 @@ term.loadAddon(fitAddon);
 term.open(document.getElementById('terminal')!);
 fitAddon.fit();
 
-const app = new LoginApp(term.cols, term.rows);
+let model = init(term.cols, term.rows);
 
 // Startup: enable SGR mouse tracking + initial frame
-term.write(app.init());
+term.write(SGR_MOUSE_ENABLE + view(model));
+
+function dispatch(msg: Msg): void {
+  const next = update(msg, model);
+  if (next === model) return;
+  model = next;
+  term.write(view(model));
+}
 
 // SGR mouse press: ESC [ < btn ; col ; row M
-const SGR_MOUSE = /^\x1b\[<(\d+);(\d+);(\d+)([Mm])$/;
-
 term.onData(data => {
   const m = SGR_MOUSE.exec(data);
   if (!m) return;
   const btn = parseInt(m[1], 10), col = parseInt(m[2], 10), row = parseInt(m[3], 10);
   if (btn !== 0 || m[4] !== 'M') return;  // left-button press only
-  const out = app.mousePress(row, col);
-  if (out) term.write(out);
+  dispatch({ type: 'MousePress', row, col });
 });
 
 term.onKey(({ key, domEvent }) => {
-  const out = app.key(key, domEvent);
-  if (out) term.write(out);
+  dispatch({ type: 'Key', key, event: domEvent });
 });
 
 // Debounced resize
@@ -47,6 +53,6 @@ window.addEventListener('resize', () => {
   clearTimeout(resizeTimer!);
   resizeTimer = setTimeout(() => {
     fitAddon.fit();
-    term.write(app.resize(term.cols, term.rows));
+    dispatch({ type: 'Resize', cols: term.cols, rows: term.rows });
   }, 50);
 });
