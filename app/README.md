@@ -17,7 +17,7 @@ import {
   // Input parser
   parseMsg,
   // ANSI utilities for host lifecycle management
-  showCursor, cls, SGR_MOUSE_DISABLE,
+  showCursor, cls
 } from './app/index.ts';
 ```
 
@@ -29,7 +29,7 @@ import {
 
 | File | Responsibility |
 |------|---------------|
-| `ansi.ts` | Pure ANSI escape-sequence helpers (`goto`, `cls`, `bold`, `rev`, `fg`, …), box layout constants (`BOX_W`, `BOX_H`, `INPUT_W`, `INNER`, …), and **SGR mouse protocol constants** (`SGR_MOUSE_ENABLE`, `SGR_MOUSE_DISABLE`, `SGR_MOUSE_RE`). Both directions of the SGR mouse protocol (output enable/disable sequences and the input-parsing regex) live here together. No dependencies. |
+| `ansi.ts` | Pure ANSI escape-sequence helpers (`goto`, `cls`, `bold`, `rev`, `fg`, …), box layout constants (`BOX_W`, `BOX_H`, `INPUT_W`, `INNER`, …), and **SGR mouse protocol constants** (`SGR_MOUSE_ENABLE`, `SGR_MOUSE_RE`). Both directions of the SGR mouse protocol (output enable sequence and the input-parsing regex) live here together. No dependencies. |
 
 ### Layer 2 — TEA core + input parser
 

@@ -21,5 +21,4 @@ export const INNER      = BOX_W - 2;  // visible columns inside box borders
 
 // SGR mouse protocol (both directions of the protocol live together here)
 export const SGR_MOUSE_ENABLE  = `${ESC}[?1000h${ESC}[?1006h`;  // enable SGR mouse tracking (written to terminal on startup)
-export const SGR_MOUSE_DISABLE = `${ESC}[?1000l${ESC}[?1006l`;  // disable SGR mouse tracking (written on teardown)
 export const SGR_MOUSE_RE      = /^\x1b\[<(\d+);(\d+);(\d+)([Mm])$/;  // regex matching incoming SGR mouse event sequences
