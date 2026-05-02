@@ -18,3 +18,7 @@ export const INPUT_W    = 20;   // visible width of each input field
 export const LABEL_USER = '  Username: ';
 export const LABEL_PASS = '  Password: ';
 export const INNER      = BOX_W - 2;  // visible columns inside box borders
+
+// SGR mouse protocol (both directions of the protocol live together here)
+export const SGR_MOUSE_ENABLE  = `${ESC}[?1000h${ESC}[?1006h`;  // enable SGR mouse tracking (written to terminal on startup)
+export const SGR_MOUSE_RE      = /^\x1b\[<(\d+);(\d+);(\d+)([Mm])$/;  // regex matching incoming SGR mouse event sequences
