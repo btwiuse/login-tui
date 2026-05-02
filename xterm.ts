@@ -7,7 +7,7 @@
 import "@xterm/xterm/css/xterm.css"
 import { Terminal } from '@xterm/xterm';
 import { FitAddon } from '@xterm/addon-fit';
-import { init, update, view, type Msg, SGR_MOUSE_ENABLE, SGR_MOUSE } from './app/index.ts';
+import { init, update, view, type Msg, parseMsg } from './app/index.ts';
 
 const term = new Terminal({
   cursorBlink: true,
@@ -22,7 +22,7 @@ fitAddon.fit();
 let model = init(term.cols, term.rows);
 
 // Startup: enable SGR mouse tracking + initial frame
-term.write(SGR_MOUSE_ENABLE + view(model));
+term.write(view(model, { enableMouse: true }));
 
 function dispatch(msg: Msg): void {
   const next = update(msg, model);
@@ -31,13 +31,13 @@ function dispatch(msg: Msg): void {
   term.write(view(model));
 }
 
-// SGR mouse press: ESC [ < btn ; col ; row M
+// xterm.js delivers mouse events as raw SGR sequences through onData.
+// parseMsg handles the SGR pattern and returns a MousePress Msg (or null).
+// Keyboard events are handled separately via onKey which provides the full
+// DOM event — no need to re-parse them from raw bytes here.
 term.onData(data => {
-  const m = SGR_MOUSE.exec(data);
-  if (!m) return;
-  const btn = parseInt(m[1], 10), col = parseInt(m[2], 10), row = parseInt(m[3], 10);
-  if (btn !== 0 || m[4] !== 'M') return;  // left-button press only
-  dispatch({ type: 'MousePress', row, col });
+  const msg = parseMsg(data);
+  if (msg?.type === 'MousePress') dispatch(msg);
 });
 
 term.onKey(({ key, domEvent }) => {

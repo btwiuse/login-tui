@@ -8,12 +8,12 @@
 export type { Model, KeyEvent, Msg } from './model.ts';
 
 // TEA functions
-export { init }   from './init.ts';
-export { update } from './update.ts';
-export { view }   from './view.ts';
+export { init }                    from './init.ts';
+export { update }                  from './update.ts';
+export { view, type ViewOptions }  from './view.ts';
 
 // Input parser
-export { SGR_MOUSE_ENABLE, SGR_MOUSE, parseMsg } from './keys.ts';
+export { parseMsg } from './keys.ts';
 
-// ANSI utilities (hosts may need these for terminal housekeeping)
-export { showCursor, cls } from './ansi.ts';
+// ANSI utilities needed by hosts for terminal lifecycle management
+export { showCursor, cls, SGR_MOUSE_DISABLE } from './ansi.ts';

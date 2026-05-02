@@ -8,12 +8,23 @@ import type { Model } from './model.ts';
 import {
   hideCursor, showCursor, goto, cls, bold, rev, fg,
   BOX_W, INPUT_W, LABEL_USER, LABEL_PASS, INNER,
+  SGR_MOUSE_ENABLE,
 } from './ansi.ts';
 import { layout, inputVW, btnVW } from './geom.ts';
 
+/** Options accepted by the view function. */
+export interface ViewOptions {
+  /**
+   * When true, prepends the SGR mouse-tracking enable sequence to the frame.
+   * Pass on the very first render so hosts never need to import or know about
+   * the raw escape sequence themselves.
+   */
+  enableMouse?: boolean;
+}
+
 /** Pure view function.  Returns the full ANSI frame for the given model. */
-export function view(model: Model): string {
-  return _render(model);
+export function view(model: Model, opts?: ViewOptions): string {
+  return (opts?.enableMouse ? SGR_MOUSE_ENABLE : '') + _render(model);
 }
 
 // ── private helpers ──────────────────────────────────────────────────

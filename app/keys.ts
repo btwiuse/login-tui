@@ -5,9 +5,7 @@
 // ═══════════════════════════════════════════════════════════════════════
 
 import { type Msg, type KeyEvent } from './model.ts';
-
-export const SGR_MOUSE_ENABLE = '\x1b[?1000h\x1b[?1006h';
-export const SGR_MOUSE        = /^\x1b\[<(\d+);(\d+);(\d+)([Mm])$/;
+import { SGR_MOUSE_RE } from './ansi.ts';
 
 /** Parse a raw terminal input sequence into a Msg, or null for unrecognised sequences. */
 export function parseMsg(data: string): Msg | null {
@@ -35,7 +33,7 @@ export function parseMsg(data: string): Msg | null {
   }
 
   // SGR mouse press: ESC [ < btn ; col ; row M
-  const m = SGR_MOUSE.exec(data);
+  const m = SGR_MOUSE_RE.exec(data);
   if (m) {
     const btn = parseInt(m[1], 10), col = parseInt(m[2], 10), row = parseInt(m[3], 10);
     if (btn === 0 && m[4] === 'M') return { type: 'MousePress', row, col };

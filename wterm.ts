@@ -6,7 +6,7 @@
 
 import '@wterm/dom/css';
 import { WTerm } from '@wterm/dom';
-import { init, update, view, type Msg, SGR_MOUSE_ENABLE, parseMsg } from './app/index.ts';
+import { init, update, view, type Msg, parseMsg } from './app/index.ts';
 
 let cols = 80;
 let rows = 24;
@@ -32,7 +32,7 @@ const term = new WTerm(el, {
 await term.init();
 
 model = init(cols, rows);
-term.write(SGR_MOUSE_ENABLE + view(model));
+term.write(view(model, { enableMouse: true }));
 
 dispatch = (msg: Msg) => {
   const next = update(msg, model);
