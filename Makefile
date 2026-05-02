@@ -1,10 +1,5 @@
-build: web web-wterm cli
-
-web:
-	bun build:web
-
-web-wterm:
-	bun build:web:wterm
-
-cli:
+build:
+	bun install
+	bun build:xterm
+	bun build:wterm
 	bun build:cli
