@@ -4,7 +4,8 @@
 // ═══════════════════════════════════════════════════════════════════════
 
 import type { Model } from './model.ts';
+import { Focus } from './model.ts';
 
 export function init(cols: number, rows: number): Model {
-  return { username: '', password: '', focus: 0, message: '', done: false, cols, rows };
+  return { username: '', password: '', focus: Focus.Username, message: '', done: false, cols, rows };
 }
