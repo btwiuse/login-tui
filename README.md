@@ -89,46 +89,25 @@ graph TD
 
 ## Usage
 
-### Browser mode (xterm.js)
-
-Requires [Bun](https://bun.sh) ≥ 1.0.
+### Dev
 
 ```bash
-bun install
-bun dev:xterm
+bun dev:xterm   # browser (xterm.js)
+bun dev:wterm   # browser (wterm)
+bun dev:cli     # CLI (requires TTY; Ctrl-C / Ctrl-D to exit)
 ```
 
-Open <http://localhost:3000/> in any modern browser.
-
-### Browser mode (wterm)
-
-```bash
-bun install
-bun dev:wterm
-```
-
-Open <http://localhost:3000/> in any modern browser.
-
-### CLI mode
-
-```bash
-bun dev:cli
-```
-
-Requires a real TTY (raw mode).  Press **Ctrl-C** or **Ctrl-D** to exit.
+Open http://localhost:3000/ for browser modes.
 
 ### Build
 
 ```bash
-# Browser bundle (xterm.js)
-bun run build:xterm
-
-# Browser bundle (wterm)
-bun run build:wterm
-
-# Standalone CLI binary
-bun run build:cli
+bun build:xterm   # browser (xterm.js)
+bun build:wterm   # browser (wterm)
+bun build:cli     # standalone CLI
 ```
+
+Outputs are written to `dist/` (HTML entry points, hashed JS/CSS assets, and the standalone `cli` binary).
 
 ---
 
