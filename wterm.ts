@@ -6,8 +6,7 @@
 
 import '@wterm/dom/css';
 import { WTerm } from '@wterm/dom';
-import { init, update, view, type Msg } from './app.ts';
-import { SGR_MOUSE_ENABLE, parseMsg } from './keys.ts';
+import { init, update, view, type Msg, SGR_MOUSE_ENABLE, parseMsg } from './app/index.ts';
 
 let cols = 80;
 let rows = 24;

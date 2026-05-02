@@ -35,13 +35,13 @@ flowchart LR
     terminal -.->|next event| Msg
 ```
 
-| TEA concept | Implementation in `app.ts` |
-|-------------|---------------------------|
-| **Model**   | `Model` interface — plain data record holding all app state |
-| **Msg**     | `Msg` discriminated union — `Resize \| MousePress \| Key` |
-| **init**    | `init(cols, rows): Model` — returns the initial model |
-| **update**  | `update(msg, model): Model` — pure function; returns the same reference when nothing changes |
-| **view**    | `view(model): string` — pure function that produces the full ANSI frame |
+| TEA concept | Implementation in `app/` |
+|-------------|--------------------------|
+| **Model**   | `app/model.ts` — `Model` interface, plain data record holding all app state |
+| **Msg**     | `app/model.ts` — `Msg` discriminated union — `Resize \| MousePress \| Key` |
+| **init**    | `app/init.ts` — `init(cols, rows): Model` — returns the initial model |
+| **update**  | `app/update.ts` — `update(msg, model): Model` — pure function; returns the same reference when nothing changes |
+| **view**    | `app/view.ts` — `view(model): string` — pure function that produces the full ANSI frame |
 
 Each host file owns a tiny `dispatch` loop:
 
@@ -61,30 +61,35 @@ function dispatch(msg: Msg): void {
 
 ```mermaid
 graph TD
-    A["Layer 1 — ansi.ts\nPure ANSI escape-sequence helpers\nand layout constants.\nNo xterm / DOM / Bun dependency."]
-    B["Layer 2 — app.ts  (TEA core)\nModel / Msg / init / update / view.\nZero xterm / DOM / runtime dependency."]
-    K["Layer 2 — keys.ts  (input parser)\nSGR_MOUSE_ENABLE · SGR_MOUSE · parseMsg.\nConverts raw byte sequences → Msg.\nShared by all terminal hosts."]
+    A["Layer 1 — app/ansi.ts\nPure ANSI escape-sequence helpers\nand layout constants.\nNo xterm / DOM / Bun dependency."]
+    B["Layer 2 — app/model.ts · init.ts · update.ts · view.ts\nTEA core: Model / Msg / init / update / view.\nZero xterm / DOM / runtime dependency."]
+    K["Layer 2 — app/keys.ts  (input parser)\nSGR_MOUSE_ENABLE · SGR_MOUSE · parseMsg.\nConverts raw byte sequences → Msg.\nShared by all terminal hosts."]
+    IDX["app/index.ts\nPublic barrel entry point.\nHosts import everything from here."]
     C["Layer 3 — xterm.ts\nxterm.js host (xterm.html).\nOwns the TEA loop;\ntranslates xterm events → Msg."]
     D["Layer 3 — wterm.ts\n@wterm/dom host (wterm.html).\nOwns the TEA loop;\ntranslates wterm events → Msg."]
     E["Layer 3 — cli.ts\nBun raw-mode stdin host.\nOwns the TEA loop;\ntranslates stdin chunks → Msg."]
 
     A -->|imported by| B
     A -->|imported by| K
-    B -->|browser xterm.js| C
-    B -->|browser wterm| D
-    B -->|CLI| E
-    K -->|shared input parsing| C
-    K -->|shared input parsing| D
-    K -->|shared input parsing| E
+    B --> IDX
+    K --> IDX
+    IDX -->|browser xterm.js| C
+    IDX -->|browser wterm| D
+    IDX -->|CLI| E
 ```
 
 ### Files
 
 | File | Purpose |
 |------|---------|
-| `ansi.ts` | ANSI escape helpers (`goto`, `cls`, `bold`, `rev`, `fg`, …) and box layout constants |
-| `app.ts` | TEA core — `Model`, `Msg`, `init`, `update`, `view`; runtime-agnostic |
-| `keys.ts` | Shared input parser — `SGR_MOUSE_ENABLE`, `SGR_MOUSE`, `parseMsg`; used by all hosts |
+| `app/ansi.ts` | ANSI escape helpers (`goto`, `cls`, `bold`, `rev`, `fg`, …) and box layout constants |
+| `app/model.ts` | TEA types — `Model` (state record), `KeyEvent`, `Msg` (event union) |
+| `app/init.ts` | TEA `init(cols, rows): Model` — returns the initial model |
+| `app/update.ts` | TEA `update(msg, model): Model` — pure state transition; all input logic |
+| `app/view.ts` | TEA `view(model): string` — pure ANSI frame renderer |
+| `app/keys.ts` | Shared input parser — `SGR_MOUSE_ENABLE`, `SGR_MOUSE`, `parseMsg`; used by all hosts |
+| `app/geom.ts` | Internal geometry helpers shared by `update` and `view` (not in public API) |
+| `app/index.ts` | Public barrel entry point — hosts import everything from here |
 | `xterm.ts` | xterm.js host; owns the TEA loop (served via `xterm.html`) |
 | `wterm.ts` | @wterm/dom host; owns the TEA loop (served via `wterm.html`) |
 | `cli.ts` | Bun raw-mode CLI host; owns the TEA loop |

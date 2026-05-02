@@ -4,7 +4,7 @@
 //  Converts raw byte sequences into typed Msg values.
 // ═══════════════════════════════════════════════════════════════════════
 
-import { type Msg, type KeyEvent } from './app.ts';
+import { type Msg, type KeyEvent } from './model.ts';
 
 export const SGR_MOUSE_ENABLE = '\x1b[?1000h\x1b[?1006h';
 export const SGR_MOUSE        = /^\x1b\[<(\d+);(\d+);(\d+)([Mm])$/;

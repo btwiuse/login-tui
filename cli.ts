@@ -6,9 +6,7 @@
 //  No TUI / rendering logic lives here.
 // ═══════════════════════════════════════════════════════════════════════
 
-import { showCursor, cls } from './ansi.ts';
-import { init, update, view, type Msg } from './app.ts';
-import { SGR_MOUSE_ENABLE, parseMsg } from './keys.ts';
+import { showCursor, cls, init, update, view, type Msg, SGR_MOUSE_ENABLE, parseMsg } from './app/index.ts';
 
 function write(s: string): void {
   process.stdout.write(s);
