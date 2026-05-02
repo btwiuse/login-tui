@@ -1,8 +1,5 @@
 {
   "scripts": {
-    "dev:xterm": "bun ./xterm.html",
-    "dev:wterm": "bun ./wterm.html",
-    "dev:cli": "bun run ./cli.ts",
     "build:xterm": "bun build --target=browser --outdir=dist ./xterm.html",
     "build:wterm": "bun build --target=browser --outdir=dist ./wterm.html",
     "build:cli": "bun build --target=node --outfile=dist/cli ./cli.ts"

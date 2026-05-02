@@ -92,9 +92,9 @@ graph TD
 ### Dev
 
 ```bash
-bun dev:xterm   # browser (xterm.js)
-bun dev:wterm   # browser (wterm)
-bun dev:cli     # CLI (requires TTY; Ctrl-C / Ctrl-D to exit)
+bun xterm.html   # browser (xterm.js)
+bun wterm.html   # browser (wterm)
+bun cli.ts       # CLI (requires TTY; Ctrl-C / Ctrl-D to exit)
 ```
 
 Open http://localhost:3000/ for browser modes.
@@ -105,6 +105,7 @@ Open http://localhost:3000/ for browser modes.
 bun build:xterm   # browser (xterm.js)
 bun build:wterm   # browser (wterm)
 bun build:cli     # standalone CLI
+make build        # everything above
 ```
 
 Outputs are written to `dist/` (HTML entry points, hashed JS/CSS assets, and the standalone `cli` binary).
