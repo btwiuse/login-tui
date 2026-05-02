@@ -8,9 +8,7 @@ import "@xterm/xterm/css/xterm.css"
 import { Terminal } from '@xterm/xterm';
 import { FitAddon } from '@xterm/addon-fit';
 import { init, update, view, type Msg } from './app.ts';
-
-const SGR_MOUSE_ENABLE = '\x1b[?1000h\x1b[?1006h';
-const SGR_MOUSE        = /^\x1b\[<(\d+);(\d+);(\d+)([Mm])$/;
+import { SGR_MOUSE_ENABLE, SGR_MOUSE } from './keys.ts';
 
 const term = new Terminal({
   cursorBlink: true,
