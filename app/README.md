@@ -17,7 +17,7 @@ import {
   // Input parser
   parseMsg,
   // ANSI utilities for host lifecycle management
-  showCursor, cls
+  showCursor, cls, SGR_MOUSE_DISABLE
 } from './app/index.ts';
 ```
 

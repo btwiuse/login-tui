@@ -6,7 +6,7 @@
 //  No TUI / rendering logic lives here.
 // ═══════════════════════════════════════════════════════════════════════
 
-import { showCursor, cls, init, update, view, type Msg, parseMsg } from './app/index.ts';
+import { showCursor, cls, SGR_MOUSE_DISABLE, init, update, view, type Msg, parseMsg } from './app/index.ts';
 
 function write(s: string): void {
   process.stdout.write(s);
@@ -21,6 +21,7 @@ function termSize(): { cols: number; rows: number } {
 
 /** Restore terminal and exit cleanly. */
 function exitClean(code = 0): never {
+  write(SGR_MOUSE_DISABLE);          // disable mouse tracking
   write(showCursor);                 // ensure cursor is visible
   write(cls);                        // clear screen
   process.exit(code);
