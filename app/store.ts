@@ -11,16 +11,21 @@ import { update } from './update.ts';
 
 export interface AppState {
   model: Model;
-  dispatch: (msg: Msg) => void;
 }
 
-/** Create a zustand store for the given initial terminal size. */
+/**
+ * Create a zustand store for the given initial terminal size.
+ * Returns the store and a stable dispatch function.
+ * dispatch is a plain closure (not part of store state) so destructuring it
+ * is safe — it will never become a stale reference.
+ */
 export function createAppStore(cols: number, rows: number) {
-  return createStore<AppState>((set, get) => ({
-    model: init(cols, rows),
-    dispatch(msg: Msg) {
-      const next = update(msg, get().model);
-      if (next !== get().model) set({ model: next });
-    },
-  }));
+  const store = createStore<AppState>()(() => ({ model: init(cols, rows) }));
+
+  function dispatch(msg: Msg): void {
+    const next = update(msg, store.getState().model);
+    if (next !== store.getState().model) store.setState({ model: next });
+  }
+
+  return { store, dispatch };
 }

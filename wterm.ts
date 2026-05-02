@@ -8,8 +8,7 @@ import '@wterm/dom/css';
 import { WTerm } from '@wterm/dom';
 import { view, parseMsg, createAppStore } from './app/index.ts';
 
-const store = createAppStore(80, 24);
-const { dispatch } = store.getState();
+const { store, dispatch } = createAppStore(80, 24);
 
 const el = document.getElementById('terminal')!;
 

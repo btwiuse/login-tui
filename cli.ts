@@ -30,8 +30,7 @@ function exitClean(code = 0): never {
 // ── Main ─────────────────────────────────────────────────────────────
 
 const { cols, rows } = termSize();
-const store = createAppStore(cols, rows);
-const { dispatch } = store.getState();
+const { store, dispatch } = createAppStore(cols, rows);
 
 process.stdin.setRawMode(true);
 process.stdin.resume();

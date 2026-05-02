@@ -19,8 +19,7 @@ term.loadAddon(fitAddon);
 term.open(document.getElementById('terminal')!);
 fitAddon.fit();
 
-const store = createAppStore(term.cols, term.rows);
-const { dispatch } = store.getState();
+const { store, dispatch } = createAppStore(term.cols, term.rows);
 
 // Startup: enable SGR mouse tracking + initial frame
 term.write(view(store.getState().model, { enableMouse: true }));
