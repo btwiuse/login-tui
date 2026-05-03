@@ -4,14 +4,13 @@
 //  and view (rendering).  Not part of the public API.
 // ═══════════════════════════════════════════════════════════════════════
 
-import type { Model } from './model.ts';
 import { BOX_W, BOX_H, INPUT_W } from './ansi.ts';
 
 /** Compute the top-left origin of the centred box (1-based terminal coords). */
-export function layout(model: Model): { ROW0: number; COL0: number } {
+export function layout({ cols, rows }: { cols: number; rows: number }): { ROW0: number; COL0: number } {
   const blockH = BOX_H + 3;
-  const ROW0 = Math.max(1, Math.floor((model.rows - blockH) / 2) + 1);
-  const COL0 = Math.max(1, Math.floor((model.cols - BOX_W)  / 2) + 1);
+  const ROW0 = Math.max(1, Math.floor((rows - blockH) / 2) + 1);
+  const COL0 = Math.max(1, Math.floor((cols - BOX_W)  / 2) + 1);
   return { ROW0, COL0 };
 }
 

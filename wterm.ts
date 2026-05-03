@@ -6,9 +6,7 @@
 
 import '@wterm/dom/css';
 import { WTerm } from '@wterm/dom';
-import { view, parseMsg, createAppStore } from './app/index.ts';
-
-const { store, dispatch } = createAppStore(80, 24);
+import { parseMsg, createAppStore, LoginModel, SGR_MOUSE_ENABLE } from './app/index.ts';
 
 const el = document.getElementById('terminal')!;
 
@@ -26,10 +24,12 @@ const term = new WTerm(el, {
 
 await term.init();
 
-dispatch({ type: 'Resize', cols: term.cols, rows: term.rows });
-term.write(view(store.getState().model, { enableMouse: true }));
+const { store, dispatch } = createAppStore(LoginModel.create(term.cols, term.rows));
+
+// Enable SGR mouse tracking, then render the first frame
+term.write(SGR_MOUSE_ENABLE + store.getState().model.view());
 
 // Re-render whenever the model changes
 store.subscribe((state, prev) => {
-  if (state.model !== prev.model) term.write(view(state.model));
+  if (state.model !== prev.model) term.write(state.model.view());
 });

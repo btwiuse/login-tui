@@ -18,41 +18,49 @@ rendering logic is completely decoupled from the runtime environment.
 
 ### The Elm Architecture
 
+The implementation follows bubbletea's `tea.Model` interface exactly:
+
 ```mermaid
 flowchart LR
-    init["init(cols, rows)\n─────────────\nreturns the\ninitial Model"]
-    Model(["Model\n─────────────\nplain data record\ndescribing the\nfull app state"])
+    create["LoginModel.create(cols, rows)\n─────────────\nreturns the\ninitial Model"]
+    Model(["Model\n─────────────\nLoginModel instance\nencapsulates state\nexposes init/update/view"])
     Msg(["Msg\n─────────────\ndiscriminated union\nof all possible\nevents"])
-    update["update(msg, model)\n─────────────\nMsg × Model → Model\npure · same ref\nwhen unchanged"]
-    view["view(model, opts?)\n─────────────\nModel × ViewOptions? → string\npure · returns\nfull ANSI frame"]
+    update["model.update(msg)\n─────────────\nMsg → [Model, Cmd]\npure · same ref\nwhen unchanged"]
+    Cmd(["Cmd\n─────────────\n() => Msg\nIO operation\nnull = no-op"])
+    view["model.view()\n─────────────\nModel → string\npure · returns\nfull ANSI frame"]
     terminal[/"terminal.write(frame)"/]
 
-    init --> Model
-    Msg  --> update
-    Model --> update
-    update --> |"Model'"| view
-    view --> terminal
+    create --> Model
+    Msg    --> update
+    Model  --> update
+    update --> |"[Model', Cmd]"| view
+    update --> |Cmd| Cmd
+    Cmd    -.->|"Msg"| Msg
+    view   --> terminal
     terminal -.->|next event| Msg
 ```
 
-| TEA concept | Implementation in `app/` |
-|-------------|--------------------------|
-| **Model**   | `app/model.ts` — `Model` interface, plain data record holding all app state |
-| **Msg**     | `app/model.ts` — `Msg` discriminated union — `Resize \| MousePress \| Key` |
-| **init**    | `app/init.ts` — `init(cols, rows): Model` — returns the initial model |
-| **update**  | `app/update.ts` — `update(msg, model): Model` — pure function; returns the same reference when nothing changes |
-| **view**    | `app/view.ts` — `view(model, opts?): string` — pure function that produces the full ANSI frame; pass `{ enableMouse: true }` on the first call to prefix the SGR mouse-enable sequence |
-| **store**   | `app/store.ts` — `createAppStore(cols, rows)` — zustand vanilla store; returns `{ store, dispatch }` so hosts subscribe for rendering without managing model state directly |
+| TEA concept | bubbletea (Go) | Implementation in `app/` |
+|-------------|----------------|--------------------------|
+| **Model**   | `type Model interface { Init() Cmd; Update(Msg) (Model, Cmd); View() View }` | `interface Model` in `app/tea.ts` — `LoginModel` class in `app/model.ts` |
+| **Msg**     | `type Msg = any` | `app/tea.ts` — `Msg` discriminated union — `Resize \| MousePress \| Key` |
+| **Cmd**     | `type Cmd func() Msg` | `app/tea.ts` — `type Cmd = (() => Msg \| Promise<Msg>) \| null` |
+| **init**    | `func (m model) Init() tea.Cmd` | `LoginModel.create(cols, rows)` constructs the initial model; `init()` returns null |
+| **update**  | `func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd)` | `model.update(msg): [Model, Cmd]` — returns same reference when nothing changes |
+| **view**    | `func (m model) View() tea.View` | `model.view(): string` — pure function that produces the full ANSI frame |
+| **program** | `tea.NewProgram(model{})` | `createAppStore(initialModel)` in `app/store.ts` — runs `init()`, dispatch loop, and executes Cmds |
 
-Each host creates a zustand store and subscribes for rendering:
+Each host creates a store and subscribes for rendering:
 
 ```ts
-const { store, dispatch } = createAppStore(cols, rows);
-terminal.write(view(store.getState().model, { enableMouse: true }));  // first frame enables mouse tracking
+const { store, dispatch } = createAppStore(LoginModel.create(cols, rows));
+
+// Enable SGR mouse tracking + first frame
+terminal.write(SGR_MOUSE_ENABLE + store.getState().model.view());
 
 // Re-render whenever the model changes
 store.subscribe((state, prev) => {
-  if (state.model !== prev.model) terminal.write(view(state.model));
+  if (state.model !== prev.model) terminal.write(state.model.view());
 });
 ```
 
@@ -61,16 +69,19 @@ store.subscribe((state, prev) => {
 ```mermaid
 graph TD
     A["Layer 1 — app/ansi.ts\nPure ANSI escape-sequence helpers\nand layout constants.\nNo xterm / DOM / Bun dependency."]
-    B["Layer 2 — app/model.ts · init.ts · update.ts · view.ts\nTEA core: Model / Msg / init / update / view.\nZero xterm / DOM / runtime dependency."]
+    T["Layer 2 — app/tea.ts\nTEA framework types:\nModel interface · Cmd · Msg · KeyEvent."]
+    B["Layer 2 — app/model.ts\nLoginModel: concrete Model implementation.\ninit · update · view + all helpers.\nZero xterm / DOM / runtime dependency."]
     K["Layer 2 — app/keys.ts  (input parser)\nparseMsg.\nConverts raw byte sequences → Msg.\nShared by all terminal hosts."]
-    S["Layer 2 — app/store.ts  (zustand store)\ncreateAppStore · AppState.\nWraps TEA model; exposes store + dispatch.\nUsed by all hosts via index.ts."]
+    S["Layer 2 — app/store.ts  (program)\ncreateAppStore · AppState.\nRuns init(), dispatch loop, executes Cmds.\nUsed by all hosts via index.ts."]
     IDX["app/index.ts\nPublic barrel entry point.\nHosts import everything from here."]
     C["Layer 3 — xterm.ts\nxterm.js host (xterm.html).\nUses the zustand store;\ntranslates xterm events → Msg."]
     D["Layer 3 — wterm.ts\n@wterm/dom host (wterm.html).\nUses the zustand store;\ntranslates wterm events → Msg."]
     E["Layer 3 — cli.ts\nBun raw-mode stdin host.\nUses the zustand store;\ntranslates stdin chunks → Msg."]
 
+    A -->|imported by| T
     A -->|imported by| B
-    A -->|imported by| K
+    T -->|imported by| B
+    T --> IDX
     B --> IDX
     B --> S
     K --> IDX
@@ -85,13 +96,11 @@ graph TD
 | File | Purpose |
 |------|---------|
 | `app/ansi.ts` | ANSI escape helpers (`goto`, `cls`, `bold`, `rev`, `fg`, …) and box layout constants |
-| `app/model.ts` | TEA types — `Model` (state record), `KeyEvent`, `Msg` (event union) |
-| `app/init.ts` | TEA `init(cols, rows): Model` — returns the initial model |
-| `app/update.ts` | TEA `update(msg, model): Model` — pure state transition; all input logic |
-| `app/view.ts` | TEA `view(model): string` — pure ANSI frame renderer |
-| `app/store.ts` | Zustand vanilla store — `createAppStore(cols, rows)` returns `{ store, dispatch }`; centralises model state and change-detection for all hosts |
+| `app/tea.ts` | TEA framework types — `Model` interface, `Cmd`, `Msg` (event union), `KeyEvent` |
+| `app/model.ts` | `LoginModel` — concrete `Model` implementation; encapsulates state and implements `init()`, `update()`, `view()` |
+| `app/store.ts` | `createAppStore(initialModel)` — zustand vanilla store (the "program"); calls `init()`, runs the dispatch loop, executes Cmds |
 | `app/keys.ts` | Shared input parser — `parseMsg`; used by all hosts |
-| `app/geom.ts` | Internal geometry helpers shared by `update` and `view` (not in public API) |
+| `app/geom.ts` | Internal geometry helpers shared by `model.ts` update and view logic (not in public API) |
 | `app/index.ts` | Public barrel entry point — hosts import everything from here |
 | `xterm.ts` | xterm.js host; uses the zustand store (served via `xterm.html`) |
 | `wterm.ts` | @wterm/dom host; uses the zustand store (served via `wterm.html`) |
