@@ -9,6 +9,9 @@ import { Terminal } from '@xterm/xterm';
 import { FitAddon } from '@xterm/addon-fit';
 import { view, parseMsg, createAppStore } from './app/index.ts';
 
+const containerEl = document.getElementById('terminal');
+if (!containerEl) throw new Error('Missing #terminal element');
+
 const term = new Terminal({
   cursorBlink: true,
   theme: { background: '#1e1e1e', foreground: '#d4d4d4', cursor: '#d4d4d4' },
@@ -16,7 +19,7 @@ const term = new Terminal({
 
 const fitAddon = new FitAddon();
 term.loadAddon(fitAddon);
-term.open(document.getElementById('terminal')!);
+term.open(containerEl);
 fitAddon.fit();
 
 const { store, dispatch } = createAppStore(term.cols, term.rows);
@@ -42,12 +45,23 @@ term.onKey(({ key, domEvent }) => {
   dispatch({ type: 'Key', key, event: domEvent });
 });
 
-// Debounced resize
-let resizeTimer: ReturnType<typeof setTimeout> | null = null;
-window.addEventListener('resize', () => {
-  clearTimeout(resizeTimer!);
-  resizeTimer = setTimeout(() => {
-    fitAddon.fit();
-    dispatch({ type: 'Resize', cols: term.cols, rows: term.rows });
-  }, 50);
-});
+// Debounced resize via ResizeObserver on the container element.
+// ResizeObserver fires for any CSS-driven size change (not just window resize),
+// which is more accurate than window.addEventListener('resize').
+function debounce<T extends (...args: unknown[]) => void>(fn: T, delay: number): T {
+  let timer: ReturnType<typeof setTimeout> | null = null;
+  return ((...args: unknown[]) => {
+    clearTimeout(timer!);
+    timer = setTimeout(() => fn(...args), delay);
+  }) as T;
+}
+
+const handleResize = debounce(() => {
+  fitAddon.fit();
+  dispatch({ type: 'Resize', cols: term.cols, rows: term.rows });
+}, 100);
+
+const resizeObserver = new ResizeObserver(handleResize);
+resizeObserver.observe(containerEl);
+
+window.addEventListener('unload', () => resizeObserver.disconnect());
