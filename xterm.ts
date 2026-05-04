@@ -51,15 +51,17 @@ term.onKey(({ key, domEvent }) => {
 function debounce<T extends (...args: unknown[]) => void>(fn: T, delay: number): T {
   let timer: ReturnType<typeof setTimeout> | null = null;
   return ((...args: unknown[]) => {
-    clearTimeout(timer!);
+    if (timer !== null) clearTimeout(timer);
     timer = setTimeout(() => fn(...args), delay);
   }) as T;
 }
 
+const RESIZE_DEBOUNCE_MS = 100;
+
 const handleResize = debounce(() => {
   fitAddon.fit();
   dispatch({ type: 'Resize', cols: term.cols, rows: term.rows });
-}, 100);
+}, RESIZE_DEBOUNCE_MS);
 
 const resizeObserver = new ResizeObserver(handleResize);
 resizeObserver.observe(containerEl);
