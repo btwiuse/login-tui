@@ -1,12 +1,13 @@
 # login-tui
 
 A fully-interactive TUI login form written in TypeScript.  
-Runs in **three modes** from the same core logic:
+Runs in **four modes** from the same core logic:
 
 | Mode | Host | How to run |
 |------|------|-----------|
 | Browser (xterm.js) | xterm.js via `xterm.html` | `bun dev:xterm` |
 | Browser (wterm) | @wterm/dom via `wterm.html` | `bun dev:wterm` |
+| Browser (ghostty-web) | ghostty-web via `ghostty.html` | `bun dev:ghostty` |
 | Terminal (CLI) | Bun raw-mode stdin | `bun dev:cli` |
 
 ---
@@ -67,6 +68,7 @@ graph TD
     IDX["app/index.ts\nPublic barrel entry point.\nHosts import everything from here."]
     C["Layer 3 — xterm.ts\nxterm.js host (xterm.html).\nUses the zustand store;\ntranslates xterm events → Msg."]
     D["Layer 3 — wterm.ts\n@wterm/dom host (wterm.html).\nUses the zustand store;\ntranslates wterm events → Msg."]
+    G["Layer 3 — ghostty.ts\nghostty-web host (ghostty.html).\nUses the zustand store;\ntranslates ghostty events → Msg."]
     E["Layer 3 — cli.ts\nBun raw-mode stdin host.\nUses the zustand store;\ntranslates stdin chunks → Msg."]
 
     A -->|imported by| B
@@ -77,6 +79,7 @@ graph TD
     S --> IDX
     IDX -->|browser xterm.js| C
     IDX -->|browser wterm| D
+    IDX -->|browser ghostty-web| G
     IDX -->|CLI| E
 ```
 
@@ -95,9 +98,11 @@ graph TD
 | `app/index.ts` | Public barrel entry point — hosts import everything from here |
 | `xterm.ts` | xterm.js host; uses the zustand store (served via `xterm.html`) |
 | `wterm.ts` | @wterm/dom host; uses the zustand store (served via `wterm.html`) |
+| `ghostty.ts` | ghostty-web host; uses the zustand store (served via `ghostty.html`) |
 | `cli.ts` | Bun raw-mode CLI host; uses the zustand store |
 | `xterm.html` | Entry point for the xterm.js browser mode |
 | `wterm.html` | Entry point for the @wterm/dom browser mode |
+| `ghostty.html` | Entry point for the ghostty-web browser mode |
 | `package.json` | Dependencies and scripts |
 
 ---
@@ -107,9 +112,10 @@ graph TD
 ### Dev
 
 ```bash
-bun xterm.html   # browser (xterm.js)
-bun wterm.html   # browser (wterm)
-bun cli.ts       # CLI (requires TTY; Ctrl-C / Ctrl-D to exit)
+bun xterm.html    # browser (xterm.js)
+bun wterm.html    # browser (wterm)
+bun ghostty.html  # browser (ghostty-web)
+bun cli.ts        # CLI (requires TTY; Ctrl-C / Ctrl-D to exit)
 ```
 
 Open http://localhost:3000/ for browser modes.
@@ -117,10 +123,11 @@ Open http://localhost:3000/ for browser modes.
 ### Build
 
 ```bash
-bun build:xterm   # browser (xterm.js)
-bun build:wterm   # browser (wterm)
-bun build:cli     # standalone CLI
-make build        # everything above
+bun build:xterm    # browser (xterm.js)
+bun build:wterm    # browser (wterm)
+bun build:ghostty  # browser (ghostty-web)
+bun build:cli      # standalone CLI
+make build         # everything above
 ```
 
 Outputs are written to `dist/` (HTML entry points, hashed JS/CSS assets, and the standalone `cli` binary).
