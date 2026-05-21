@@ -10,14 +10,14 @@ they never reach into the internal files directly.
 
 ```ts
 import {
-  // TEA types
-  type Model, type KeyEvent, type Msg,
-  // TEA functions
-  init, update, view, type ViewOptions,
+  // TEA framework types
+  type Model, type Cmd, type Msg, type KeyEvent,
+  // Concrete model (create initial instance here)
+  LoginModel,
   // Input parser
   parseMsg,
   // ANSI utilities for host lifecycle management
-  showCursor, cls, SGR_MOUSE_DISABLE,
+  showCursor, cls, SGR_MOUSE_ENABLE, SGR_MOUSE_DISABLE,
   // Zustand store factory
   createAppStore, type AppState,
 } from './app/index.ts';
@@ -37,13 +37,11 @@ import {
 
 | File | TEA role | Responsibility |
 |------|----------|---------------|
-| `model.ts` | **Model / Msg** | Plain TypeScript types only: `Model` (app state record), `KeyEvent` (keyboard event interface), `Msg` (discriminated union of all events). Zero runtime code. |
-| `init.ts` | **init** | `init(cols, rows): Model` — returns the initial `Model` for a given terminal size. |
-| `update.ts` | **update** | `update(msg, model): Model` — pure state-transition function. Returns the same reference when nothing changes, enabling cheap re-render guards. Contains all input-handling logic (`_handleKey`, `_handleMousePress`, `_activateFocus`, `_hitTest`). |
-| `view.ts` | **view** | `view(model, opts?): string` — pure render function. Accepts optional `ViewOptions { enableMouse?: boolean }`: when `enableMouse: true` the returned string is prefixed with `SGR_MOUSE_ENABLE`, so hosts never need to import or know that escape sequence directly. All rendering helpers live here. |
-| `store.ts` | **store** | `createAppStore(cols, rows)` — creates a [zustand](https://github.com/pmndrs/zustand) vanilla store that holds the TEA model. Returns `{ store, dispatch }`: `store` is a `StoreApi<AppState>` hosts subscribe to for rendering; `dispatch` is a stable closure outside store state that runs `update` and calls `store.setState` only when the model reference changes. |
-| `keys.ts` | *(shared)* | Raw terminal byte-sequence parser used by all hosts. Exports only `parseMsg(data): Msg \| null`. Imports `SGR_MOUSE_RE` from `ansi.ts`; the SGR protocol constants are **not** re-exported here. |
-| `geom.ts` | *(internal)* | Geometry helpers shared by `update.ts` and `view.ts`: `layout(model)` computes the centred box origin; `inputVW` / `btnVW` compute widget visual widths for both hit-testing and rendering. **Not exported from `index.ts`.** |
+| `tea.ts` | **Framework types** | `KeyEvent`, `Msg` (discriminated union of all events), `Cmd` (`() => Msg \| Promise<Msg>` or `null`), and the `Model` interface (`init / update / view`). Analogous to charm.land/bubbletea/v2's `tea.Model`, `tea.Cmd`, and `tea.Msg`. |
+| `model.ts` | **Model** | `LoginModel` — concrete implementation of `Model`. Encapsulates all application state (`LoginState`) and exposes three methods: `init()`, `update(msg)`, and `view()`. Replaces the old standalone `init.ts`, `update.ts`, and `view.ts` files. All update and render helpers are private to this module. |
+| `store.ts` | **Program** | `createAppStore(initialModel)` — analogous to `tea.NewProgram`. Creates a [zustand](https://github.com/pmndrs/zustand) vanilla store, calls `initialModel.init()` for the startup Cmd, and provides a `dispatch` closure that runs `model.update()` and executes any returned `Cmd`. |
+| `keys.ts` | *(shared)* | Raw terminal byte-sequence parser used by all hosts. Exports only `parseMsg(data): Msg \| null`. Imports `SGR_MOUSE_RE` from `ansi.ts`. |
+| `geom.ts` | *(internal)* | Geometry helpers shared by `model.ts` update and view logic: `layout({ cols, rows })` computes the centred box origin; `inputVW` / `btnVW` compute widget visual widths for both hit-testing and rendering. **Not exported from `index.ts`.** |
 
 ### Entry point
 
@@ -58,36 +56,25 @@ import {
 ```mermaid
 graph TD
     ansi["ansi.ts\nLayer 1 — ANSI helpers"]
-    model["model.ts\nModel · KeyEvent · Msg"]
+    tea["tea.ts\nModel · Cmd · Msg · KeyEvent"]
     geom["geom.ts\n(internal geometry)"]
-    init_["init.ts\ninit()"]
-    update_["update.ts\nupdate()"]
-    view_["view.ts\nview()"]
-    keys["keys.ts\nparseMsg · SGR_MOUSE_RE↑"]
+    model["model.ts\nLoginModel\ninit · update · view"]
+    keys["keys.ts\nparseMsg"]
     store["store.ts\ncreateAppStore · AppState"]
     idx["index.ts\npublic entry point"]
 
     ansi --> geom
-    model --> geom
-    ansi --> init_
-    model --> init_
-    ansi --> update_
-    model --> update_
-    geom --> update_
-    ansi --> view_
-    model --> view_
-    geom --> view_
-    model --> keys
+    ansi --> model
+    geom --> model
+    tea --> model
+    tea --> keys
     ansi --> keys
+    tea --> store
     model --> store
-    init_ --> store
-    update_ --> store
 
-    init_   --> idx
-    update_ --> idx
-    view_   --> idx
-    keys    --> idx
+    tea     --> idx
     model   --> idx
+    keys    --> idx
     ansi    --> idx
     store   --> idx
 ```
@@ -96,38 +83,44 @@ graph TD
 
 ## Design notes
 
-### High cohesion, low coupling
+### Authentic Elm Architecture
 
-All TEA roles (`Model`, `init`, `update`, `view`) and shared utilities (`keys`, `ansi`)
-are co-located in this directory. Host files have **zero knowledge** of the internal
-split — they import from a single barrel entry point and the module can be
-freely reorganised without touching any host.
+`LoginModel` mirrors the bubbletea `tea.Model` interface exactly:
+
+| bubbletea (Go) | This module (TypeScript) |
+|----------------|--------------------------|
+| `type Model interface { Init() Cmd; Update(Msg) (Model, Cmd); View() View }` | `interface Model { init(): Cmd; update(msg: Msg): [Model, Cmd]; view(): string }` |
+| `type Cmd func() Msg` | `type Cmd = (() => Msg \| Promise<Msg>) \| null` |
+| model struct with value-receiver methods | `LoginModel` class with immutable state (`LoginState`) |
+
+`update()` returns `[Model, Cmd]` — the new model **and** an optional IO command —
+matching bubbletea's `Update(Msg) (tea.Model, tea.Cmd)` exactly.
 
 ### Pure functions only
 
-`init`, `update`, and `view` have no side-effects and no I/O dependencies.
-`update` returns the **same object reference** when nothing changed.
-`app/store.ts` exploits this: the `dispatch` closure applies the strict-equality guard
-(`if (next !== model) store.setState(…)`) once, centrally, so no host needs to replicate it.
+`update()` and `view()` have no side-effects and no I/O dependencies.
+`update()` returns the **same object reference** when nothing changed —
+`store.ts` exploits this to guard `setState` calls and skip unnecessary re-renders.
 
 ### The dispatch loop (created by `createAppStore`, used by each host)
 
-`app/store.ts` encapsulates the dispatch loop in a [zustand](https://github.com/pmndrs/zustand)
-vanilla store so hosts don't manage model state directly:
+`app/store.ts` encapsulates the dispatch loop (analogous to `tea.Program.Run`):
 
 ```ts
-const { store, dispatch } = createAppStore(cols, rows);
-terminal.write(view(store.getState().model, { enableMouse: true }));  // first frame enables mouse tracking
+const { store, dispatch } = createAppStore(LoginModel.create(cols, rows));
+
+// Enable SGR mouse tracking + first frame
+terminal.write(SGR_MOUSE_ENABLE + store.getState().model.view());
 
 // Re-render whenever the model changes
 store.subscribe((state, prev) => {
-  if (state.model !== prev.model) terminal.write(view(state.model));
+  if (state.model !== prev.model) terminal.write(state.model.view());
 });
 ```
 
-`dispatch` is a stable closure outside the store state. It runs the pure `update` function
-and calls `store.setState` only when the model reference changes — the same guard as
-before, but now centralised so no host needs to replicate it.
+`dispatch` is a stable closure outside the store state. It runs `model.update(msg)`,
+calls `store.setState` only when the model reference changes, and automatically
+executes any `Cmd` returned by `update()`.
 
 ### Why `xterm.ts` mixes `onData` and `onKey`
 
@@ -146,3 +139,4 @@ term.onKey(({ key, domEvent }) => {
   dispatch({ type: 'Key', key, event: domEvent });
 });
 ```
+

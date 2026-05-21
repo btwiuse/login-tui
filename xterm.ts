@@ -7,7 +7,7 @@
 import "@xterm/xterm/css/xterm.css"
 import { Terminal } from '@xterm/xterm';
 import { FitAddon } from '@xterm/addon-fit';
-import { view, parseMsg, createAppStore } from './app/index.ts';
+import { parseMsg, createAppStore, LoginModel, SGR_MOUSE_ENABLE } from './app/index.ts';
 
 const containerEl = document.getElementById('terminal');
 if (!containerEl) throw new Error('Missing #terminal element');
@@ -22,14 +22,14 @@ term.loadAddon(fitAddon);
 term.open(containerEl);
 fitAddon.fit();
 
-const { store, dispatch } = createAppStore(term.cols, term.rows);
+const { store, dispatch } = createAppStore(LoginModel.create(term.cols, term.rows));
 
-// Startup: enable SGR mouse tracking + initial frame
-term.write(view(store.getState().model, { enableMouse: true }));
+// Enable SGR mouse tracking, then render the first frame
+term.write(SGR_MOUSE_ENABLE + store.getState().model.view());
 
 // Re-render whenever the model changes
 store.subscribe((state, prev) => {
-  if (state.model !== prev.model) term.write(view(state.model));
+  if (state.model !== prev.model) term.write(state.model.view());
 });
 
 // xterm.js delivers mouse events as raw SGR sequences through onData.

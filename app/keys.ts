@@ -4,7 +4,7 @@
 //  Converts raw byte sequences into typed Msg values.
 // ═══════════════════════════════════════════════════════════════════════
 
-import { type Msg, type KeyEvent } from './model.ts';
+import { type Msg, type KeyEvent } from './tea.ts';
 import { SGR_MOUSE_RE } from './ansi.ts';
 
 /** Parse a raw terminal input sequence into a Msg, or null for unrecognised sequences. */

@@ -6,7 +6,7 @@
 //  No TUI / rendering logic lives here.
 // ═══════════════════════════════════════════════════════════════════════
 
-import { showCursor, cls, SGR_MOUSE_DISABLE, view, parseMsg, createAppStore } from './app/index.ts';
+import { showCursor, cls, SGR_MOUSE_ENABLE, SGR_MOUSE_DISABLE, parseMsg, createAppStore, LoginModel } from './app/index.ts';
 
 function write(s: string): void {
   process.stdout.write(s);
@@ -30,17 +30,18 @@ function exitClean(code = 0): never {
 // ── Main ─────────────────────────────────────────────────────────────
 
 const { cols, rows } = termSize();
-const { store, dispatch } = createAppStore(cols, rows);
+const { store, dispatch } = createAppStore(LoginModel.create(cols, rows));
 
 process.stdin.setRawMode(true);
 process.stdin.resume();
 process.stdin.setEncoding('utf8');
 
-write(view(store.getState().model, { enableMouse: true }));
+// Enable SGR mouse tracking, then render the first frame
+write(SGR_MOUSE_ENABLE + store.getState().model.view());
 
 // Re-render whenever the model changes
 store.subscribe((state, prev) => {
-  if (state.model !== prev.model) write(view(state.model));
+  if (state.model !== prev.model) write(state.model.view());
 });
 
 process.stdin.on('data', (chunk: string) => {
